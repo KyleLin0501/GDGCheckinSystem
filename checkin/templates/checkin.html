@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>社課簽到系統</title>
+    <style>
+        /* CSS 優化開始 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #1877f2;
+            margin-bottom: 30px;
+        }
+        .course-info {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #e7f3ff; /* 淺藍色背景 */
+            border-radius: 8px;
+            border-left: 5px solid #1877f2;
+        }
+        .course-info p {
+            margin: 5px 0;
+            font-size: 1.05em;
+            color: #333;
+        }
+        .course-info strong {
+            color: #1877f2;
+            min-width: 80px;
+            display: inline-block;
+        }
+        .input-group {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        label {
+            font-weight: bold;
+            color: #555;
+            min-width: 80px;
+        }
+        #course_select {
+            padding: 10px;
+            flex-grow: 1;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+        #student_id {
+            padding: 12px;
+            flex-grow: 1;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        #student_id:focus {
+            border-color: #1877f2;
+            outline: none;
+        }
+
+        #checkin_button, #export_button {
+            padding: 12px 20px;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        #checkin_button {
+            background-color: #4CAF50; /* 綠色 */
+        }
+        #checkin_button:hover {
+            background-color: #45a049;
+        }
+        #export_button {
+            background-color: #f29a18; /* 橙色 */
+            width: 100%; /* 讓匯出按鈕佔滿寬度 */
+            margin-top: 10px;
+        }
+        #export_button:hover {
+            background-color: #e68a15;
+        }
+
+        /* 彈出視窗樣式 (極簡版) */
+        .modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+            width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6);
+        }
+        .modal-content {
+            background-color: #fefefe; margin: 10% auto; padding: 30px; border: none;
+            width: 90%; max-width: 400px; border-radius: 10px; text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .close { color: #aaa; float: right; font-size: 36px; font-weight: bold; line-height: 1; }
+        .close:hover, .close:focus { color: #333; text-decoration: none; cursor: pointer; }
+
+        /* 表格樣式 */
+        #checkin_table th, #checkin_list_body td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        #checkin_list_body tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>社課簽到系統</h2>
+
+    <div class="input-group">
+        <label for="course_select">選擇課程:</label>
+        <select id="course_select" onchange="updateCourseInfo()">
+            {% for course in courses %}
+                <option
+                    value="{{ course.id }}"
+                    data-date="{{ course.date|date:'Y/m/d' }}"
+                    data-name="{{ course.name }}"
+                    data-classroom="{{ course.classroom }}"
+                >
+                    {{ course.date|date:"Y/m/d" }} - {{ course.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="course-info">
+        <p><strong>課程日期:</strong> <span id="info_date"></span></p>
+        <p><strong>課程名稱:</strong> <span id="info_name"></span></p>
+        <p><strong>社課教室:</strong> <span id="info_classroom"></span></p>
+    </div>
+
+    <div class="input-group">
+        <label for="student_id">輸入學號:</label>
+        <input type="text" id="student_id" placeholder="請輸入學號" required>
+        <button id="checkin_button" onclick="performCheckin()">簽到</button>
+    </div>
+
+    <button id="export_button" onclick="exportCheckinCSV()">匯出當前課程簽到檔案 (CSV)</button>
+
+     <h3 style="margin-top: 30px; border-bottom: 2px solid #ddd; padding-bottom: 5px; color: #1877f2;">
+        今日簽到名單
+        <span id="checkin_count" style="font-size: 0.8em; color: #555;"> (0 人)</span>
+    </h3>
+
+    <div id="checkin_status" style="text-align: center; color: #888; padding: 15px;">
+        載入中...
+    </div>
+
+    <table id="checkin_table" style="width: 100%; border-collapse: collapse; display: none;">
+        <thead>
+            <tr style="background-color: #eee;">
+                <th style="width: 5%;">#</th>
+                <th style="width: 10%;">編號</th>
+                <th style="width: 30%;">姓名 (學號)</th>
+                <th style="width: 45%;">簽到時間</th>
+            </tr>
+        </thead>
+        <tbody id="checkin_list_body">
+            </tbody>
+    </table>
+
+</div>
+
+<div id="checkin_modal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h3 id="modal_title"></h3>
+        <p id="modal_message"></p>
+        <div id="modal_details"></div>
+    </div>
+</div>
+
+<script>
+    // 在 Django 專案中，需要取得 CSRF token 以通過安全驗證
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    // ----------------------------------------------------
+
+    /**
+     * 核心函數：獲取並渲染簽到列表
+     */
+    async function fetchCheckinList(courseId) {
+        const tableBody = document.getElementById('checkin_list_body');
+        const tableElement = document.getElementById('checkin_table');
+        const statusDiv = document.getElementById('checkin_status');
+        const countSpan = document.getElementById('checkin_count');
+
+        // 初始化狀態
+        tableElement.style.display = 'none';
+        statusDiv.style.display = 'block';
+        tableBody.innerHTML = '';
+
+        if (!courseId) {
+            statusDiv.textContent = '請選擇課程以載入簽到名單。';
+            countSpan.textContent = '(0 人)';
+            return;
+        }
+
+        statusDiv.textContent = '載入中...';
+        countSpan.textContent = '(0 人)';
+
+        try {
+            const response = await fetch(`/api/checkins/${courseId}/`);
+            const data = await response.json();
+
+            if (data.checkins && data.checkins.length > 0) {
+
+                data.checkins.forEach((record, index) => {
+                    const row = tableBody.insertRow();
+                    // 應用表格樣式
+                    row.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#f9f9f9';
+
+                    // 順序號碼 (從 1 開始，且最新簽到在最前)
+                    const indexCell = row.insertCell(0);
+                    indexCell.textContent = index + 1;
+
+                    // 社員編號
+                    const memberIdCell = row.insertCell(1);
+                    memberIdCell.textContent = record.member_id;
+
+                    // 姓名 (學號)
+                    const nameCell = row.insertCell(2);
+                    nameCell.innerHTML = `<strong>${record.name}</strong> (${record.student_id})`;
+
+                    // 簽到時間
+                    const timeCell = row.insertCell(3);
+                    timeCell.textContent = record.checkin_time;
+                });
+
+                countSpan.textContent = ` (${data.checkins.length} 人)`;
+                statusDiv.style.display = 'none';
+                tableElement.style.display = 'table';
+
+            } else {
+                statusDiv.textContent = '此課程目前無簽到記錄。';
+                countSpan.textContent = '(0 人)';
+            }
+
+        } catch (error) {
+            console.error("載入簽到列表失敗:", error);
+            statusDiv.textContent = '載入簽到列表時發生錯誤。';
+        }
+    }
+
+
+    /**
+     * 更新課程資訊顯示 (切換課程時，自動載入列表)
+     */
+    function updateCourseInfo() {
+        const select = document.getElementById('course_select');
+        // 檢查是否有課程選項
+        if (!select.options.length || select.selectedIndex === -1) {
+            document.getElementById('info_date').textContent = "無課程";
+            document.getElementById('info_name').textContent = "請先到 Admin 後台新增課程";
+            document.getElementById('info_classroom').textContent = "";
+
+            // 如果沒有課程，顯示無名單
+            fetchCheckinList(null);
+            return;
+        }
+
+        const selectedOption = select.options[select.selectedIndex];
+        document.getElementById('info_date').textContent = selectedOption.getAttribute('data-date');
+        document.getElementById('info_name').textContent = selectedOption.getAttribute('data-name');
+        document.getElementById('info_classroom').textContent = selectedOption.getAttribute('data-classroom');
+
+        const courseId = select.value;
+        // 切換課程時，呼叫列表更新
+        fetchCheckinList(courseId);
+    }
+
+    // 初始載入時更新一次
+    updateCourseInfo();
+
+    /**
+     * 執行簽到操作
+     */
+    async function performCheckin() {
+        const studentIdInput = document.getElementById('student_id');
+        const student_id = studentIdInput.value.trim();
+        const course_select = document.getElementById('course_select');
+        const course_id = course_select.value;
+
+        if (!student_id || !course_id) {
+            alert("請輸入學號並選擇課程。");
+            return;
+        }
+
+        try {
+            const response = await fetch('/checkin/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // 如果後端 views.py 移除了 @csrf_exempt，必須啟用這行：
+                    // 'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    student_id: student_id,
+                    course_id: course_id
+                })
+            });
+
+            const data = await response.json();
+
+            // 清空輸入框
+            studentIdInput.value = '';
+            studentIdInput.focus();
+
+            // 處理回傳結果
+            if (data.status === 'success') {
+                showModal("簽到成功！",
+                          `社員姓名: ${data.student_name} (${data.student_id})`,
+                          `<p>課程: ${data.course_name}</p><p>簽到時間: ${data.time}</p>`);
+
+                // 簽到成功後，刷新列表
+                fetchCheckinList(course_id);
+
+            } else if (data.status === 'non_member') {
+                showModal("非社團成員", data.message, "");
+            } else if (data.status === 'already_checkedin') {
+                showModal("重複簽到", data.message, "");
+            } else {
+                // 其他錯誤 (如伺服器內部錯誤)
+                showModal("簽到失敗", data.message, "");
+            }
+
+        } catch (error) {
+            console.error('簽到請求錯誤:', error);
+            showModal("網路錯誤", "無法連線到伺服器，請稍後再試。", "");
+        }
+    }
+
+    /**
+     * 顯示彈出視窗
+     */
+    function showModal(title, message, detailsHTML) {
+        document.getElementById('modal_title').textContent = title;
+        document.getElementById('modal_message').textContent = message;
+        document.getElementById('modal_details').innerHTML = detailsHTML;
+        document.getElementById('checkin_modal').style.display = 'block';
+    }
+
+    /**
+     * 關閉彈出視窗
+     */
+    function closeModal() {
+        document.getElementById('checkin_modal').style.display = 'none';
+    }
+
+    // 點擊視窗外關閉
+    window.onclick = function(event) {
+        const modal = document.getElementById('checkin_modal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    /**
+    * 匯出當前課程的簽到記錄為 CSV
+    */
+    function exportCheckinCSV() {
+        const course_select = document.getElementById('course_select');
+        const course_id = course_select.value;
+
+        if (!course_id) {
+            alert("請先選擇一個課程。");
+            return;
+        }
+
+        // 導向到新的下載 URL
+        // URL 格式為 /export/123/，其中 123 是課程 ID
+        window.location.href = `/export/${course_id}/`;
+    }
+
+</script>
+
+</body>
+</html>
