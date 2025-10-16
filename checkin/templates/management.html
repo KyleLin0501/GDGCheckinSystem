@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>社團管理系統</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 40px; background-color: #f0f2f5; }
+        .container { max-width: 900px; margin: auto; padding: 30px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        h2 { text-align: center; color: #1877f2; margin-bottom: 30px; }
+        .form-section { border: 1px solid #ddd; padding: 20px; margin-bottom: 30px; border-radius: 8px; }
+        .form-section h3 { color: #4CAF50; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; margin-top: 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input[type="text"], input[type="number"], input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button, .action-btn {
+            padding: 10px 15px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            margin: 2px 0;
+            font-size: 0.85em;
+            display: inline-block;
+        }
+        .submit-student { background-color: #4CAF50; }
+        .submit-student:hover { background-color: #45a049; }
+        .submit-course { background-color: #f29a18; }
+        .submit-course:hover { background-color: #e68a15; }
+        .btn-edit { background-color: #1877f2; }
+        .btn-edit:hover { background-color: #0d60cc; }
+        .btn-delete { background-color: #dc3545; }
+        .btn-delete:hover { background-color: #c82333; }
+        .form-section table th, .form-section table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .form-section table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .back-link { display: block; margin-top: 20px; text-align: center; color: #1877f2; text-decoration: none; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px; }
+        .close-modal { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
+        .close-modal:hover, .close-modal:focus { color: #000; text-decoration: none; cursor: pointer; }
+        .modal-content h3 { border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px; color: #1877f2; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>社團資料管理中心</h2>
+
+    <div class="form-section">
+        <h3>新增社員</h3>
+        <form method="post" action="{% url 'add_student' %}">
+            {% csrf_token %}
+            <div><label for="new_student_id">學號 (必填):</label><input type="text" id="new_student_id" name="student_id" required placeholder="例如: B12345678"></div>
+            <div><label for="new_student_name">姓名 (必填):</label><input type="text" id="new_student_name" name="name" required placeholder="例如: 王小明"></div>
+            <div><label for="new_member_id">社員編號 (選填):</label><input type="number" id="new_member_id" name="member_id" placeholder="例如: 101"></div>
+            <button type="submit" class="submit-student">新增社員</button>
+        </form>
+    </div>
+
+    <div class="form-section">
+        <h3 style="color: #f29a18; border-bottom-color: #f29a18;">新增課程</h3>
+        <form method="post" action="{% url 'add_course' %}">
+            {% csrf_token %}
+            <div><label for="new_course_name">課程名稱 (必填):</label><input type="text" id="new_course_name" name="name" required placeholder="例如: Python 基礎教學"></div>
+            <div><label for="new_course_date">課程日期 (必填):</label><input type="date" id="new_course_date" name="date" required></div>
+            <div><label for="new_classroom">社課教室 (選填):</label><input type="text" id="new_classroom" name="classroom" placeholder="例如: 綜合大樓 A101"></div>
+            <button type="submit" class="submit-course">新增課程</button>
+        </form>
+    </div>
+
+    <div class="form-section">
+        <h3 style="color: #1877f2; border-bottom-color: #1877f2;">現有社員名單 (共 {{ students|length }} 人)</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <thead>
+                <tr style="background-color: #f0f2f5;">
+                    <th style="width: 10%; padding: 10px; border: 1px solid #ddd; text-align: left;">編號</th>
+                    <th style="width: 30%; padding: 10px; border: 1px solid #ddd; text-align: left;">姓名</th>
+                    <th style="width: 30%; padding: 10px; border: 1px solid #ddd; text-align: left;">學號</th>
+                    <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: center;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr style="background-color: {% cycle '#ffffff' '#f9f9f9' %}" data-id="{{ student.id }}">
+                    <td data-field="member_id" style="padding: 10px; border: 1px solid #ddd;">{{ student.member_id }}</td>
+                    <td data-field="name" style="padding: 10px; border: 1px solid #ddd;">{{ student.name }}</td>
+                    <td data-field="student_id" style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">{{ student.student_id }}</td>
+                    <td style="padding: 5px; border: 1px solid #ddd; text-align: center;">
+                        <button class="action-btn btn-edit" onclick="openEditModal('student', '{{ student.id|escapejs }}', '{{ student.name|escapejs }}', '{{ student.student_id|escapejs }}', '{{ student.member_id|escapejs }}')">編輯</button>
+                        <button class="action-btn btn-delete" onclick="confirmDelete('student', '{{ student.id|escapejs }}', '{{ student.name|escapejs }} ({{ student.student_id|escapejs }})')">刪除</button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" style="padding: 10px; text-align: center; color: #888;">目前沒有社員記錄。</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="form-section">
+        <h3 style="color: #f29a18; border-bottom-color: #f29a18;">現有課程列表 (共 {{ courses|length }} 堂)</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <thead>
+                <tr style="background-color: #f0f2f5;">
+                    <th style="width: 25%; padding: 10px; border: 1px solid #ddd; text-align: left;">日期</th>
+                    <th style="width: 35%; padding: 10px; border: 1px solid #ddd; text-align: left;">課程名稱</th>
+                    <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: left;">教室</th>
+                    <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: center;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for course in courses %}
+                <tr style="background-color: {% cycle '#ffffff' '#f9f9f9' %}" data-id="{{ course.id }}">
+                    <td data-field="date" style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">{{ course.date }}</td>
+                    <td data-field="name" style="padding: 10px; border: 1px solid #ddd;">{{ course.name }}</td>
+                    <td data-field="classroom" style="padding: 10px; border: 1px solid #ddd;">{{ course.classroom }}</td>
+                    <td style="padding: 5px; border: 1px solid #ddd; text-align: center;">
+                        <button class="action-btn btn-edit" onclick="openEditModal('course', '{{ course.id|escapejs }}', '{{ course.name|escapejs }}', '{{ course.date|escapejs }}', '{{ course.classroom|escapejs }}')">編輯</button>
+                        <button class="action-btn btn-delete" onclick="confirmDelete('course', '{{ course.id|escapejs }}', '{{ course.date|escapejs }} - {{ course.name|escapejs }}')">刪除</button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" style="padding: 10px; text-align: center; color: #888;">目前沒有課程記錄。</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <a href="{% url 'checkin_page' %}" class="back-link">← 返回簽到頁面</a>
+
+</div>
+
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <h3 id="modalTitle">編輯資料</h3>
+
+        <form id="editForm" method="post" action="">
+            {% csrf_token %}
+            <input type="hidden" name="doc_id" id="modalDocId">
+            <input type="hidden" name="doc_type" id="modalDocType">
+
+            <div id="modalFields">
+                </div>
+
+            <button type="submit" class="submit-student" id="modalSubmitButton" style="width: 100%; margin-top: 20px;">儲存修改</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // 在 Django 專案中，需要取得 CSRF token 以通過安全驗證
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+
+    /**
+     * 關閉彈出視窗
+     */
+    function closeModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    // 點擊視窗外關閉
+    window.onclick = function(event) {
+        const modal = document.getElementById('editModal');
+        if (event.target === modal) {
+            closeModal();
+        }
+    }
+
+
+    /**
+     * 開啟編輯彈出視窗 (確保參數安全)
+     */
+    function openEditModal(type, id, ...fields) {
+        const modal = document.getElementById('editModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalFields = document.getElementById('modalFields');
+        const modalDocId = document.getElementById('modalDocId');
+        const modalDocType = document.getElementById('modalDocType');
+
+        // 確保所有值都是安全的字串：將 '-' 或 'None' 替換為空字串
+        const safeFields = fields.map(field =>
+            (field === '-' || field === 'None' || typeof field === 'undefined') ? '' : String(field)
+        );
+
+        modalDocId.value = id;
+        modalDocType.value = type;
+        modalFields.innerHTML = '';
+
+        // 確保表單的 action 是指向後端更新 API
+        document.getElementById('editForm').action = '{% url "update_data" %}';
+
+        if (type === 'student') {
+            // safeFields: [name, student_id, member_id]
+            const [name, student_id, member_id] = safeFields;
+            modalTitle.textContent = `編輯社員：${name}`;
+
+            modalFields.innerHTML = `
+                <div><label>姓名</label><input type="text" name="name" value="${name}" required></div>
+                <div><label>學號</label><input type="text" name="student_id" value="${student_id}" required></div>
+                <div><label>社員編號</label><input type="number" name="member_id" value="${member_id}"></div>
+            `;
+
+        } else if (type === 'course') {
+            // safeFields: [name, date_str, classroom]
+            const [name, date_str, classroom] = safeFields;
+            modalTitle.textContent = `編輯課程：${name}`;
+
+            // 關鍵修正：將日期格式 YYYY/MM/DD 轉換為 YYYY-MM-DD
+            let isoDate = '';
+            if (date_str) {
+                const parts = date_str.split('/');
+                if (parts.length === 3) {
+                     isoDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                }
+            }
+
+            modalFields.innerHTML = `
+                <div><label>課程名稱</label><input type="text" name="name" value="${name}" required></div>
+                <div><label>課程日期</label><input type="date" name="date" value="${isoDate}" required></div>
+                <div><label>教室</label><input type="text" name="classroom" value="${classroom}"></div>
+            `;
+        }
+
+        // 最終顯示彈出視窗
+        modal.style.display = 'block';
+    }
+
+
+    /**
+     * 處理刪除確認 (AJAX)
+     */
+    async function confirmDelete(type, id, name) {
+        if (confirm(`確定要刪除 ${type === 'student' ? '社員' : '課程'}：${name} 嗎？\n此操作不可逆！`)) {
+
+            // 建立 FormData 物件來發送 POST 請求
+            const formData = new FormData();
+            formData.append('doc_type', type);
+            formData.append('doc_id', id);
+
+            try {
+                const response = await fetch('{% url "delete_data" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken, // 必須帶上 CSRF token
+                    },
+                    body: formData // 發送表單數據
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    alert(`${name} 刪除成功！`);
+                    window.location.reload();
+                } else {
+                    alert(`刪除失敗: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('刪除請求錯誤:', error);
+                alert('網路錯誤或伺服器連線失敗。');
+            }
+        }
+    }
+
+
+    /**
+     * 處理編輯表單提交 (Update AJAX)
+     */
+    async function performAjaxUpdate(e) {
+        e.preventDefault();
+
+        const form = e.target;
+        const formData = new FormData(form);
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                },
+                body: formData
+            });
+
+            if (response.ok) {
+                alert('數據更新成功！');
+                closeModal();
+                window.location.reload();
+            } else {
+                const errorText = await response.text();
+                alert(`更新失敗: ${errorText}`);
+            }
+
+        } catch (error) {
+            console.error('更新請求錯誤:', error);
+            alert('網路錯誤或伺服器連線失敗。');
+        }
+    }
+
+    // 將事件監聽器附加到表單上
+    document.getElementById('editForm').addEventListener('submit', performAjaxUpdate);
+</script>

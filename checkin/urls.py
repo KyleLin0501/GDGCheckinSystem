@@ -1,13 +1,14 @@
-# attendance/urls.py
 from django.urls import path
 from . import views
 
 urlpatterns = [
-    # 簽到主頁面 (GET 請求)
     path('', views.checkin_page, name='checkin_page'),
-
-    # 處理簽到邏輯 (POST 請求，使用 AJAX)
     path('checkin/', views.handle_checkin, name='handle_checkin'),
-    path('export/<int:course_id>/', views.export_checkins_csv, name='export_checkins_csv'),
-    path('api/checkins/<int:course_id>/', views.get_checkin_list, name='get_checkin_list'),
+    path('api/checkins/<str:course_id>/', views.get_checkin_list, name='get_checkin_list'),
+    path('export/<str:course_id>/', views.export_checkins_csv, name='export_checkins_csv'),
+    path('management/', views.management_page, name='management_page'),
+    path('add_student/', views.add_student, name='add_student'),
+    path('add_course/', views.add_course, name='add_course'),
+    path('api/update_data/', views.update_data, name='update_data'),
+    path('api/delete_data/', views.delete_data, name='delete_data'),
 ]

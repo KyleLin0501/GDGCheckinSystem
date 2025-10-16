@@ -24,6 +24,25 @@
             color: #1877f2;
             margin-bottom: 30px;
         }
+        /* 【新增樣式】: 管理中心按鈕 */
+        #management_button {
+            padding: 10px 15px;
+            background-color: #555; /* 深灰色 */
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            text-decoration: none; /* 移除連結下劃線 */
+            display: block;
+            text-align: center;
+            margin-top: 15px; /* 與其他元素分隔 */
+        }
+        #management_button:hover {
+            background-color: #333;
+        }
+
         .course-info {
             margin-bottom: 25px;
             padding: 15px;
@@ -155,6 +174,9 @@
 
     <button id="export_button" onclick="exportCheckinCSV()">匯出當前課程簽到檔案 (CSV)</button>
 
+    <a href="{% url 'management_page' %}" id="management_button">前往管理中心 (新增社員/課程)</a>
+
+
      <h3 style="margin-top: 30px; border-bottom: 2px solid #ddd; padding-bottom: 5px; color: #1877f2;">
         今日簽到名單
         <span id="checkin_count" style="font-size: 0.8em; color: #555;"> (0 人)</span>
@@ -283,7 +305,7 @@
         // 檢查是否有課程選項
         if (!select.options.length || select.selectedIndex === -1) {
             document.getElementById('info_date').textContent = "無課程";
-            document.getElementById('info_name').textContent = "請先到 Admin 後台新增課程";
+            document.getElementById('info_name').textContent = "請先到 管理中心 新增課程";
             document.getElementById('info_classroom').textContent = "";
 
             // 如果沒有課程，顯示無名單
