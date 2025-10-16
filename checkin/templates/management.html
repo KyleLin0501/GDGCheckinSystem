@@ -5,12 +5,12 @@
     <title>社團管理系統</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 40px; background-color: #f0f2f5; }
-        .container { max-width: 900px; margin: auto; padding: 30px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .container { max-width: 1200px; margin: auto; padding: 30px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); } /* 調整最大寬度 */
         h2 { text-align: center; color: #1877f2; margin-bottom: 30px; }
         .form-section { border: 1px solid #ddd; padding: 20px; margin-bottom: 30px; border-radius: 8px; }
         .form-section h3 { color: #4CAF50; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; margin-top: 0; }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
-        input[type="text"], input[type="number"], input[type="date"] {
+        input[type="text"], input[type="number"], input[type="date"], input[type="email"] { /* 增加 input[type="email"] */
             width: 100%;
             padding: 10px;
             margin-bottom: 15px;
@@ -65,7 +65,7 @@
             {% csrf_token %}
             <div><label for="new_student_id">學號 (必填):</label><input type="text" id="new_student_id" name="student_id" required placeholder="例如: B12345678"></div>
             <div><label for="new_student_name">姓名 (必填):</label><input type="text" id="new_student_name" name="name" required placeholder="例如: 王小明"></div>
-            <div><label for="new_member_id">社員編號 (選填):</label><input type="number" id="new_member_id" name="member_id" placeholder="例如: 101"></div>
+            <div><label for="new_student_email">Email (必填):</label><input type="email" id="new_student_email" name="email" required placeholder="例如: name@example.com"></div> <div><label for="new_member_id">社員編號 (選填):</label><input type="number" id="new_member_id" name="member_id" placeholder="例如: 101"></div>
             <button type="submit" class="submit-student">新增社員</button>
         </form>
     </div>
@@ -85,27 +85,28 @@
         <h3 style="color: #1877f2; border-bottom-color: #1877f2;">現有社員名單 (共 {{ students|length }} 人)</h3>
         <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
             <thead>
-                <tr style="background-color: #f0f2f5;">
-                    <th style="width: 10%; padding: 10px; border: 1px solid #ddd; text-align: left;">編號</th>
-                    <th style="width: 30%; padding: 10px; border: 1px solid #ddd; text-align: left;">姓名</th>
-                    <th style="width: 30%; padding: 10px; border: 1px solid #ddd; text-align: left;">學號</th>
-                    <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: center;">操作</th>
-                </tr>
+            <tr style="background-color: #f0f2f5;">
+                <th style="width: 10%; padding: 10px; border: 1px solid #ddd; text-align: left;">編號</th>
+                <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: left;">姓名</th>
+                <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: left;">學號</th>
+                <th style="width: 30%; padding: 10px; border: 1px solid #ddd; text-align: left;">Email</th> <th style="width: 10%; padding: 10px; border: 1px solid #ddd; text-align: center;">操作</th>
+            </tr>
             </thead>
             <tbody>
-                {% for student in students %}
+            {% for student in students %}
                 <tr style="background-color: {% cycle '#ffffff' '#f9f9f9' %}" data-id="{{ student.id }}">
                     <td data-field="member_id" style="padding: 10px; border: 1px solid #ddd;">{{ student.member_id }}</td>
                     <td data-field="name" style="padding: 10px; border: 1px solid #ddd;">{{ student.name }}</td>
                     <td data-field="student_id" style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">{{ student.student_id }}</td>
-                    <td style="padding: 5px; border: 1px solid #ddd; text-align: center;">
-                        <button class="action-btn btn-edit" onclick="openEditModal('student', '{{ student.id|escapejs }}', '{{ student.name|escapejs }}', '{{ student.student_id|escapejs }}', '{{ student.member_id|escapejs }}')">編輯</button>
+                    <td data-field="email" style="padding: 10px; border: 1px solid #ddd;">{{ student.email }}</td>
+                    <td class="no-wrap-cell" style="padding: 5px; border: 1px solid #ddd; text-align: center;">
+                        <button class="action-btn btn-edit" onclick="openEditModal('student', '{{ student.id|escapejs }}', '{{ student.name|escapejs }}', '{{ student.student_id|escapejs }}', '{{ student.member_id|escapejs }}', '{{ student.email|escapejs }}')">編輯</button>
                         <button class="action-btn btn-delete" onclick="confirmDelete('student', '{{ student.id|escapejs }}', '{{ student.name|escapejs }} ({{ student.student_id|escapejs }})')">刪除</button>
                     </td>
                 </tr>
-                {% empty %}
-                <tr><td colspan="4" style="padding: 10px; text-align: center; color: #888;">目前沒有社員記錄。</td></tr>
-                {% endfor %}
+            {% empty %}
+                <tr><td colspan="5" style="padding: 10px; text-align: center; color: #888;">目前沒有社員記錄。</td></tr>
+            {% endfor %}
             </tbody>
         </table>
     </div>
@@ -114,15 +115,15 @@
         <h3 style="color: #f29a18; border-bottom-color: #f29a18;">現有課程列表 (共 {{ courses|length }} 堂)</h3>
         <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
             <thead>
-                <tr style="background-color: #f0f2f5;">
-                    <th style="width: 25%; padding: 10px; border: 1px solid #ddd; text-align: left;">日期</th>
-                    <th style="width: 35%; padding: 10px; border: 1px solid #ddd; text-align: left;">課程名稱</th>
-                    <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: left;">教室</th>
-                    <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: center;">操作</th>
-                </tr>
+            <tr style="background-color: #f0f2f5;">
+                <th style="width: 25%; padding: 10px; border: 1px solid #ddd; text-align: left;">日期</th>
+                <th style="width: 35%; padding: 10px; border: 1px solid #ddd; text-align: left;">課程名稱</th>
+                <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: left;">教室</th>
+                <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: center;">操作</th>
+            </tr>
             </thead>
             <tbody>
-                {% for course in courses %}
+            {% for course in courses %}
                 <tr style="background-color: {% cycle '#ffffff' '#f9f9f9' %}" data-id="{{ course.id }}">
                     <td data-field="date" style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">{{ course.date }}</td>
                     <td data-field="name" style="padding: 10px; border: 1px solid #ddd;">{{ course.name }}</td>
@@ -132,9 +133,9 @@
                         <button class="action-btn btn-delete" onclick="confirmDelete('course', '{{ course.id|escapejs }}', '{{ course.date|escapejs }} - {{ course.name|escapejs }}')">刪除</button>
                     </td>
                 </tr>
-                {% empty %}
+            {% empty %}
                 <tr><td colspan="4" style="padding: 10px; text-align: center; color: #888;">目前沒有課程記錄。</td></tr>
-                {% endfor %}
+            {% endfor %}
             </tbody>
         </table>
     </div>
@@ -154,7 +155,7 @@
             <input type="hidden" name="doc_type" id="modalDocType">
 
             <div id="modalFields">
-                </div>
+            </div>
 
             <button type="submit" class="submit-student" id="modalSubmitButton" style="width: 100%; margin-top: 20px;">儲存修改</button>
         </form>
@@ -198,6 +199,8 @@
 
     /**
      * 開啟編輯彈出視窗 (確保參數安全)
+     * Student fields: name, student_id, member_id, email (新增)
+     * Course fields: name, date_str, classroom
      */
     function openEditModal(type, id, ...fields) {
         const modal = document.getElementById('editModal');
@@ -219,15 +222,16 @@
         document.getElementById('editForm').action = '{% url "update_data" %}';
 
         if (type === 'student') {
-            // safeFields: [name, student_id, member_id]
-            const [name, student_id, member_id] = safeFields;
+            // safeFields: [name, student_id, member_id, email]
+            // 【修改】: 依序從 safeFields 取得 Email 欄位
+            const [name, student_id, member_id, email] = safeFields;
             modalTitle.textContent = `編輯社員：${name}`;
 
             modalFields.innerHTML = `
                 <div><label>姓名</label><input type="text" name="name" value="${name}" required></div>
                 <div><label>學號</label><input type="text" name="student_id" value="${student_id}" required></div>
                 <div><label>社員編號</label><input type="number" name="member_id" value="${member_id}"></div>
-            `;
+                <div><label>Email</label><input type="email" name="email" value="${email}" required></div> `;
 
         } else if (type === 'course') {
             // safeFields: [name, date_str, classroom]
@@ -239,7 +243,7 @@
             if (date_str) {
                 const parts = date_str.split('/');
                 if (parts.length === 3) {
-                     isoDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                    isoDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
                 }
             }
 
@@ -327,3 +331,5 @@
     // 將事件監聽器附加到表單上
     document.getElementById('editForm').addEventListener('submit', performAjaxUpdate);
 </script>
+</body>
+</html>

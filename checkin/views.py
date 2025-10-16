@@ -89,6 +89,7 @@ def handle_checkin(request, *args, **kwargs):
         student_data = student_doc.to_dict()
         student_name = student_data.get('name')
         member_id = student_data.get('member_id')
+        student_email = student_data.get('email', '') # 【新增】: 取得 Email
 
         # ✅ 查詢是否重複簽到
         checkin_ref = db.collection('checkin_records') \
@@ -110,6 +111,7 @@ def handle_checkin(request, *args, **kwargs):
             'student_id': student_id_input,
             'student_name': student_name,
             'member_id': member_id,
+            'student_email': student_email, # 【新增】: 將 Email 寫入簽到記錄
             'checkin_time': local_time,
         })
 
@@ -171,7 +173,8 @@ def export_checkins_csv(request, course_id):
     writer.writerow([])
 
     # 寫入 CSV 資料標題 (Header)
-    header = ['社員編號', '社員姓名', '社員學號', '是否有簽到記錄', '實際簽到時間']
+    # 【修改】: 新增 Email 欄位
+    header = ['社員編號', '社員姓名', '社員學號', 'Email', '是否有簽到記錄', '實際簽到時間']
     writer.writerow(header)
 
     # 2. 取得該課程的所有簽到記錄，並建立一個快速查詢字典
@@ -193,6 +196,7 @@ def export_checkins_csv(request, course_id):
         student = student_doc.to_dict()
         student_id = student.get('student_id')
         member_id = student.get('member_id') if student.get('member_id') is not None else ''
+        student_email = student.get('email', '') # 【新增】: 取得 Email
 
         record = checked_in_students.get(student_id)
 
@@ -210,6 +214,7 @@ def export_checkins_csv(request, course_id):
             member_id,
             student.get('name'),
             student_id,
+            student_email, # 【新增】: 加入 Email 欄位
             has_checked_in,  # 1 或 0
             checkin_time_str,  # 實際簽到時間 (如果沒有則為空字串)
         ]
@@ -255,6 +260,7 @@ def get_checkin_list(request, course_id):
                 'member_id': member_id,
                 'name': record.get('student_name'),
                 'student_id': record.get('student_id'),
+                # 'email': record.get('student_email'), # 簽到列表通常不顯示 email，故保持現狀
                 'checkin_time': local_time.strftime('%Y/%m/%d %H:%M:%S'),
             })
 
@@ -289,6 +295,7 @@ def management_page(request):
                 'student_id': data.get('student_id', 'N/A'),
                 'name': data.get('name', 'N/A'),
                 'member_id': data.get('member_id', '-'),
+                'email': data.get('email', 'N/A'), # 【新增】: 載入 Email 欄位
             })
 
         # 2. 獲取所有課程，依日期降序排序
@@ -330,11 +337,12 @@ def add_student(request):
     try:
         student_id = request.POST.get('student_id', '').strip()
         name = request.POST.get('name', '').strip()
+        email = request.POST.get('email', '').strip() # 【新增】: 取得 Email
         member_id_str = request.POST.get('member_id', '').strip()
         member_id = int(member_id_str) if member_id_str.isdigit() else None
 
-        if not student_id or not name:
-            return HttpResponse("學號和姓名為必填項。", status=400)
+        if not student_id or not name or not email: # 【修改】: Email 為必填
+            return HttpResponse("學號、姓名和 Email 為必填項。", status=400)
 
         # 1. 檢查學號是否已存在
         student_query = db.collection('students').where(
@@ -355,6 +363,7 @@ def add_student(request):
         student_data = {
             'student_id': student_id,
             'name': name,
+            'email': email, # 【新增】: 寫入 Email
             'member_id': member_id,
         }
         db.collection('students').add(student_data)
@@ -427,6 +436,7 @@ def update_data(request):
             update_data = {
                 'name': request.POST.get('name').strip(),
                 'student_id': request.POST.get('student_id').strip(),
+                'email': request.POST.get('email').strip(), # 【新增】: 取得 Email
             }
             member_id_str = request.POST.get('member_id', '').strip()
             update_data['member_id'] = int(member_id_str) if member_id_str.isdigit() else None
