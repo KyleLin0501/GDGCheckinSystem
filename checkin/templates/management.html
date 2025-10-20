@@ -26,7 +26,7 @@
             cursor: pointer;
             font-weight: bold;
             transition: background-color 0.3s;
-            margin: 2px 0;
+            margin: 0 2px; /* 為了讓編輯/刪除按鈕水平排列 */
             font-size: 0.85em;
             display: inline-block;
         }
@@ -52,6 +52,16 @@
         .close-modal { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
         .close-modal:hover, .close-modal:focus { color: #000; text-decoration: none; cursor: pointer; }
         .modal-content h3 { border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px; color: #1877f2; }
+
+        /* 為了RWD響應式設計，讓表格在小螢幕上可以水平滾動 */
+        .table-responsive {
+            overflow-x: auto; /* 核心RWD設置，當內容溢出時顯示水平滾動條 */
+        }
+
+        /* 確保操作按鈕水平排列並防止換行 */
+        .action-cell {
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -83,62 +93,66 @@
 
     <div class="form-section">
         <h3 style="color: #1877f2; border-bottom-color: #1877f2;">現有社員名單 (共 {{ students|length }} 人)</h3>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-            <thead>
-            <tr style="background-color: #f0f2f5;">
-                <th style="width: 10%; padding: 10px; border: 1px solid #ddd; text-align: left;">編號</th>
-                <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: left;">姓名</th>
-                <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: left;">學號</th>
-                <th style="width: 30%; padding: 10px; border: 1px solid #ddd; text-align: left;">Email</th> <th style="width: 10%; padding: 10px; border: 1px solid #ddd; text-align: center;">操作</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for student in students %}
-                <tr style="background-color: {% cycle '#ffffff' '#f9f9f9' %}" data-id="{{ student.id }}">
-                    <td data-field="member_id" style="padding: 10px; border: 1px solid #ddd;">{{ student.member_id }}</td>
-                    <td data-field="name" style="padding: 10px; border: 1px solid #ddd;">{{ student.name }}</td>
-                    <td data-field="student_id" style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">{{ student.student_id }}</td>
-                    <td data-field="email" style="padding: 10px; border: 1px solid #ddd;">{{ student.email }}</td>
-                    <td class="no-wrap-cell" style="padding: 5px; border: 1px solid #ddd; text-align: center;">
-                        <button class="action-btn btn-edit" onclick="openEditModal('student', '{{ student.id|escapejs }}', '{{ student.name|escapejs }}', '{{ student.student_id|escapejs }}', '{{ student.member_id|escapejs }}', '{{ student.email|escapejs }}')">編輯</button>
-                        <button class="action-btn btn-delete" onclick="confirmDelete('student', '{{ student.id|escapejs }}', '{{ student.name|escapejs }} ({{ student.student_id|escapejs }})')">刪除</button>
-                    </td>
+        <div class="table-responsive">
+            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                <thead>
+                <tr style="background-color: #f0f2f5;">
+                    <th style="width: 10%; padding: 10px; border: 1px solid #ddd; text-align: left;">編號</th>
+                    <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: left;">姓名</th>
+                    <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: left;">學號</th>
+                    <th style="width: 30%; padding: 10px; border: 1px solid #ddd; text-align: left;">Email</th> <th style="width: 10%; padding: 10px; border: 1px solid #ddd; text-align: center;">操作</th>
                 </tr>
-            {% empty %}
-                <tr><td colspan="5" style="padding: 10px; text-align: center; color: #888;">目前沒有社員記錄。</td></tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                </thead>
+                <tbody>
+                {% for student in students %}
+                    <tr style="background-color: {% cycle '#ffffff' '#f9f9f9' %}" data-id="{{ student.id }}">
+                        <td data-field="member_id" style="padding: 10px; border: 1px solid #ddd;">{{ student.member_id }}</td>
+                        <td data-field="name" style="padding: 10px; border: 1px solid #ddd;">{{ student.name }}</td>
+                        <td data-field="student_id" style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">{{ student.student_id }}</td>
+                        <td data-field="email" style="padding: 10px; border: 1px solid #ddd;">{{ student.email }}</td>
+                        <td class="action-cell" style="padding: 5px; border: 1px solid #ddd; text-align: center;">
+                            <button class="action-btn btn-edit" onclick="openEditModal('student', '{{ student.id|escapejs }}', '{{ student.name|escapejs }}', '{{ student.student_id|escapejs }}', '{{ student.member_id|escapejs }}', '{{ student.email|escapejs }}')">編輯</button>
+                            <button class="action-btn btn-delete" onclick="confirmDelete('student', '{{ student.id|escapejs }}', '{{ student.name|escapejs }} ({{ student.student_id|escapejs }})')">刪除</button>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="5" style="padding: 10px; text-align: center; color: #888;">目前沒有社員記錄。</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        </div>
 
     <div class="form-section">
         <h3 style="color: #f29a18; border-bottom-color: #f29a18;">現有課程列表 (共 {{ courses|length }} 堂)</h3>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-            <thead>
-            <tr style="background-color: #f0f2f5;">
-                <th style="width: 25%; padding: 10px; border: 1px solid #ddd; text-align: left;">日期</th>
-                <th style="width: 35%; padding: 10px; border: 1px solid #ddd; text-align: left;">課程名稱</th>
-                <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: left;">教室</th>
-                <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: center;">操作</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for course in courses %}
-                <tr style="background-color: {% cycle '#ffffff' '#f9f9f9' %}" data-id="{{ course.id }}">
-                    <td data-field="date" style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">{{ course.date }}</td>
-                    <td data-field="name" style="padding: 10px; border: 1px solid #ddd;">{{ course.name }}</td>
-                    <td data-field="classroom" style="padding: 10px; border: 1px solid #ddd;">{{ course.classroom }}</td>
-                    <td style="padding: 5px; border: 1px solid #ddd; text-align: center;">
-                        <button class="action-btn btn-edit" onclick="openEditModal('course', '{{ course.id|escapejs }}', '{{ course.name|escapejs }}', '{{ course.date|escapejs }}', '{{ course.classroom|escapejs }}')">編輯</button>
-                        <button class="action-btn btn-delete" onclick="confirmDelete('course', '{{ course.id|escapejs }}', '{{ course.date|escapejs }} - {{ course.name|escapejs }}')">刪除</button>
-                    </td>
+        <div class="table-responsive">
+            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                <thead>
+                <tr style="background-color: #f0f2f5;">
+                    <th style="width: 25%; padding: 10px; border: 1px solid #ddd; text-align: left;">日期</th>
+                    <th style="width: 35%; padding: 10px; border: 1px solid #ddd; text-align: left;">課程名稱</th>
+                    <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: left;">教室</th>
+                    <th style="width: 20%; padding: 10px; border: 1px solid #ddd; text-align: center;">操作</th>
                 </tr>
-            {% empty %}
-                <tr><td colspan="4" style="padding: 10px; text-align: center; color: #888;">目前沒有課程記錄。</td></tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                </thead>
+                <tbody>
+                {% for course in courses %}
+                    <tr style="background-color: {% cycle '#ffffff' '#f9f9f9' %}" data-id="{{ course.id }}">
+                        <td data-field="date" style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">{{ course.date }}</td>
+                        <td data-field="name" style="padding: 10px; border: 1px solid #ddd;">{{ course.name }}</td>
+                        <td data-field="classroom" style="padding: 10px; border: 1px solid #ddd;">{{ course.classroom }}</td>
+                        <td class="action-cell" style="padding: 5px; border: 1px solid #ddd; text-align: center;">
+                            <button class="action-btn btn-edit" onclick="openEditModal('course', '{{ course.id|escapejs }}', '{{ course.name|escapejs }}', '{{ course.date|escapejs }}', '{{ course.classroom|escapejs }}')">編輯</button>
+                            <button class="action-btn btn-delete" onclick="confirmDelete('course', '{{ course.id|escapejs }}', '{{ course.date|escapejs }} - {{ course.name|escapejs }}')">刪除</button>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="4" style="padding: 10px; text-align: center; color: #888;">目前沒有課程記錄。</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        </div>
 
     <a href="{% url 'checkin_page' %}" class="back-link">← 返回簽到頁面</a>
 
