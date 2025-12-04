@@ -149,10 +149,10 @@
         <select id="course_select" onchange="updateCourseInfo()">
             {% for course in courses %}
                 <option
-                    value="{{ course.id }}"
-                    data-date="{{ course.date|date:'Y/m/d' }}"
-                    data-name="{{ course.name }}"
-                    data-classroom="{{ course.classroom }}"
+                        value="{{ course.id }}"
+                        data-date="{{ course.date|date:'Y/m/d' }}"
+                        data-name="{{ course.name }}"
+                        data-classroom="{{ course.classroom }}"
                 >
                     {{ course.date|date:"Y/m/d" }} - {{ course.name }}
                 </option>
@@ -168,7 +168,7 @@
 
     <div class="input-group">
         <label for="student_id">輸入學號:</label>
-        <input type="text" id="student_id" placeholder="請輸入學號" required>
+        <input type="text" id="student_id" placeholder="請輸入學號" value="D" required>
         <button id="checkin_button" onclick="performCheckin()">簽到</button>
     </div>
 
@@ -177,7 +177,7 @@
     <a href="{% url 'management_page' %}" id="management_button">前往管理中心 (新增社員/課程)</a>
 
 
-     <h3 style="margin-top: 30px; border-bottom: 2px solid #ddd; padding-bottom: 5px; color: #1877f2;">
+    <h3 style="margin-top: 30px; border-bottom: 2px solid #ddd; padding-bottom: 5px; color: #1877f2;">
         今日簽到名單
         <span id="checkin_count" style="font-size: 0.8em; color: #555;"> (0 人)</span>
     </h3>
@@ -188,15 +188,15 @@
 
     <table id="checkin_table" style="width: 100%; border-collapse: collapse; display: none;">
         <thead>
-            <tr style="background-color: #eee;">
-                <th style="width: 5%;">#</th>
-                <th style="width: 10%;">編號</th>
-                <th style="width: 30%;">姓名 (學號)</th>
-                <th style="width: 45%;">簽到時間</th>
-            </tr>
+        <tr style="background-color: #eee;">
+            <th style="width: 5%;">#</th>
+            <th style="width: 10%;">編號</th>
+            <th style="width: 30%;">姓名 (學號)</th>
+            <th style="width: 45%;">簽到時間</th>
+        </tr>
         </thead>
         <tbody id="checkin_list_body">
-            </tbody>
+        </tbody>
     </table>
 
 </div>
@@ -358,13 +358,14 @@
 
             // 清空輸入框
             studentIdInput.value = '';
+            studentIdInput.value = 'D';
             studentIdInput.focus();
 
             // 處理回傳結果
             if (data.status === 'success') {
                 showModal("簽到成功！",
-                          `社員姓名: ${data.student_name} (${data.student_id})`,
-                          `<p>課程: ${data.course_name}</p><p>簽到時間: ${data.time}</p>`);
+                    `社員姓名: ${data.student_name} (${data.student_id})`,
+                    `<p>課程: ${data.course_name}</p><p>簽到時間: ${data.time}</p>`);
 
                 // 簽到成功後，刷新列表
                 fetchCheckinList(course_id);
@@ -383,6 +384,24 @@
             showModal("網路錯誤", "無法連線到伺服器，請稍後再試。", "");
         }
     }
+
+    document.getElementById('student_id').addEventListener('keydown', function(event) {
+        // 偵測是否按下 Enter
+        if (event.key === 'Enter') {
+            event.preventDefault(); // 防止頁面刷新
+
+            const inputVal = this.value.trim(); // 取得去空白後的內容
+
+            // 核心邏輯：只有長度為 8 時才觸發簽到
+            if (inputVal.length === 8) {
+                performCheckin();
+            } else {
+                // 可選：若長度不對，給予簡單提示或是不做任何事
+                console.log(`目前長度為 ${inputVal.length}，需為 8 碼才可簽到`);
+                // alert("學號長度須為 8 碼");
+            }
+        }
+    });
 
     /**
      * 顯示彈出視窗
@@ -410,8 +429,8 @@
     }
 
     /**
-    * 匯出當前課程的簽到記錄為 CSV
-    */
+     * 匯出當前課程的簽到記錄為 CSV
+     */
     function exportCheckinCSV() {
         const course_select = document.getElementById('course_select');
         const course_id = course_select.value;
