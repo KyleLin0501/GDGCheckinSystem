@@ -227,6 +227,7 @@
         return cookieValue;
     }
     const csrftoken = getCookie('csrftoken');
+    let displayedStudentIds = new Set();
 
     // ----------------------------------------------------
 
@@ -244,6 +245,9 @@
         statusDiv.style.display = 'block';
         tableBody.innerHTML = '';
 
+        // 【新增 2】每次重新載入列表前，先清空記憶體中的學號名單
+        displayedStudentIds.clear();
+
         if (!courseId) {
             statusDiv.textContent = '請選擇課程以載入簽到名單。';
             countSpan.textContent = '(0 人)';
@@ -260,23 +264,21 @@
             if (data.checkins && data.checkins.length > 0) {
 
                 data.checkins.forEach((record, index) => {
+                    // 【新增 3】將此筆記錄的學號加入 Set 方便稍後比對
+                    displayedStudentIds.add(record.student_id);
+
                     const row = tableBody.insertRow();
-                    // 應用表格樣式
                     row.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#f9f9f9';
 
-                    // 順序號碼 (從 1 開始，且最新簽到在最前)
                     const indexCell = row.insertCell(0);
                     indexCell.textContent = index + 1;
 
-                    // 社員編號
                     const memberIdCell = row.insertCell(1);
                     memberIdCell.textContent = record.member_id;
 
-                    // 姓名 (學號)
                     const nameCell = row.insertCell(2);
                     nameCell.innerHTML = `<strong>${record.name}</strong> (${record.student_id})`;
 
-                    // 簽到時間
                     const timeCell = row.insertCell(3);
                     timeCell.textContent = record.checkin_time;
                 });
@@ -329,6 +331,9 @@
     /**
      * 執行簽到操作
      */
+    /**
+     * 執行簽到操作 (包含前端重複檢查)
+     */
     async function performCheckin() {
         const studentIdInput = document.getElementById('student_id');
         const student_id = studentIdInput.value.trim();
@@ -339,6 +344,23 @@
             alert("請輸入學號並選擇課程。");
             return;
         }
+
+        // ---------------------------------------------------------
+        // 【新增功能】前端攔截：檢查學號是否已在目前顯示的列表中
+        // ---------------------------------------------------------
+        // 注意：必須確保您在全域變數宣告了 let displayedStudentIds = new Set();
+        // 並且在 fetchCheckinList 函式中有把學號加進去
+        if (typeof displayedStudentIds !== 'undefined' && displayedStudentIds.has(student_id)) {
+            // 顯示重複簽到視窗
+            showModal("重複簽到", `學號 ${student_id} 已經在今日名單中了，無需重複簽到。`, "");
+
+            // 重置輸入框 (保留 'D' 並聚焦)
+            studentIdInput.value = 'D';
+            studentIdInput.focus();
+
+            return; // 直接結束函式，不發送網路請求
+        }
+        // ---------------------------------------------------------
 
         try {
             const response = await fetch('/checkin/', {
@@ -367,7 +389,7 @@
                     `社員姓名: ${data.student_name} (${data.student_id})`,
                     `<p>課程: ${data.course_name}</p><p>簽到時間: ${data.time}</p>`);
 
-                // 簽到成功後，刷新列表
+                // 簽到成功後，刷新列表 (這會順便更新 displayedStudentIds)
                 fetchCheckinList(course_id);
 
             } else if (data.status === 'non_member') {
@@ -418,7 +440,24 @@
      */
     function closeModal() {
         document.getElementById('checkin_modal').style.display = 'none';
+        const input = document.getElementById('student_id');
+        input.focus();
     }
+
+    document.addEventListener('keydown', function(event) {
+        const modal = document.getElementById('checkin_modal');
+
+        // 檢查彈出視窗是否正在顯示 (display 為 block 代表開啟中)
+        if (modal.style.display === 'block') {
+
+            // 偵測按鍵：Escape (ESC鍵) 或 Enter 鍵
+            if (event.key === 'Escape' || event.key === 'Enter') {
+
+                event.preventDefault(); // 防止 Enter 鍵觸發原本輸入框的 submit 或換行
+                closeModal(); // 呼叫關閉函式
+            }
+        }
+    });
 
     // 點擊視窗外關閉
     window.onclick = function(event) {
